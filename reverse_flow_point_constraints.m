@@ -33,8 +33,8 @@ scatter(xv,yv,12,'r','filled')
 scatter(linear_data(:,1),linear_data(:,2),12,'r','filled');
 
 %%
-dt = 0.01;
-T = 5;
+dt = 0.02;
+T = 4;
 iter_max = ceil(T/dt);
 x0 = [0;0;0];
 x_target = [4;0;0];
@@ -42,11 +42,11 @@ rng('shuffle');
 u = 0.01*ones(2*iter_max,1); 
 n_of_pts = 10;
 
-% figure
-% hold on
-% plot_traj = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
-% scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
-% grid on
+figure
+hold on
+plot_traj = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
+scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
+grid on
 tic
 while true
 % tic    
@@ -79,13 +79,13 @@ while true
         HH_store{iter} = [H, zeros(3,2*(iter_max-iter))];
     end
     
-%     % Some plots
-%     delete(plot_traj)
-%     plot_traj = plot(x_traj(1,:),x_traj(2,:),'k','LineWidth',2.5);
-%     start = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
-%     target = plot(x_target(1),x_target(2),'rx','MarkerSize',8,'LineWidth',1.5);
-%     axis([-5 5 -3 3]);
-%     drawnow
+    % Some plots
+    delete(plot_traj)
+    plot_traj = plot(x_traj(1,:),x_traj(2,:),'k','LineWidth',2.5);
+    start = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
+    target = plot(x_target(1),x_target(2),'rx','MarkerSize',8,'LineWidth',1.5);
+    axis([-5 5 -3 3]);
+    drawnow
     
     
     % Establish constraint if needed 
@@ -107,6 +107,7 @@ while true
             
             A(current_row,:) = A_k*HH_store{iter};
             B(current_row,:) = 0.9*(0.05-sorted_dist(1));
+            current_row = current_row + 1;
         end
         
     end
@@ -125,7 +126,7 @@ toc
 u_forward = u;
 traj_forward = x_traj;
 
-%%
+
 
 function [parameter] = linear_regression(data) 
 % data & linear_data: pxn matrix
