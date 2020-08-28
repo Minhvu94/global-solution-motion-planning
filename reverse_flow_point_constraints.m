@@ -33,21 +33,88 @@ scatter(xv,yv,12,'r','filled')
 scatter(linear_data(:,1),linear_data(:,2),12,'r','filled');
 
 %%
+x0 = [0;0;0];
+x_target = [4;0;0];
+u = 0.01*ones(2*200,1);
+
+x_min=-1;
+x_max=5;
+y_min=-2;
+y_max=2;
+theta_min=-pi/2;
+theta_max=pi/2;
+
+[traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_target,u,boundary_pts);
+
+if norm(traj_steer(:,end)-x_target)<1e-3
+    display('done!')
+end
+
+
+
+X_data = traj_steer(:,end);
+U_data = u_steer;
+
+while true     
+for rep = 1:5
+    
+% 1/ Random goal
+x_goal = [x_min+rand(1)*(x_max-x_min); y_min+rand(1)*(y_max-y_min); theta_min+rand(1)*(theta_max-theta_min)];
+
+% 2/ Obtain U_best from X_data, U_data
+[~, ~, closest_index] = distance_to_a_set(x_goal,X_data);
+U_best = U_data(:,closest_index);
+
+% 3/ Steer 
+[traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_goal,U_best,boundary_pts);
+
+if norm(traj_steer(:,end)-x_target)<1e-3
+    display('done!')
+    break
+end
+
+% 4/ Store Xn, u_steer
+X_data(:,end+1) = traj_steer(:,end);
+U_data(:,end+1) = u_steer;
+end
+
+% Introducing bias by having a random goal as x_target
+% 2/ Obtain U_best from X_data, U_data
+[~, ~, closest_index] = distance_to_a_set(x_target,X_data);
+U_best = U_data(:,closest_index);
+% 3/ Steer
+[traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_target,U_best,boundary_pts);
+if norm(traj_steer(:,end)-x_target)<1e-3
+    display('done!')
+    break
+end
+
+end
+
+
+
+
+
+
+% 
+function [traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_target,u,boundary_pts)
+error_old = 1e6;
 dt = 0.02;
 T = 4;
 iter_max = ceil(T/dt);
-x0 = [0;0;0];
-x_target = [4;0;0];
-rng('shuffle');
-u = 0.01*ones(2*iter_max,1); 
+% x0 = [0;0;0];
+% x_target = [4;0;0];
+% rng('shuffle');
+% u = 0.01*ones(2*iter_max,1); 
 n_of_pts = 10;
 
-figure
+figure(1)
+% clf
 hold on
 plot_traj = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
 scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
 grid on
-tic
+% tic
 while true
 % tic    
     x = x0;
@@ -67,9 +134,12 @@ while true
     end
     
     error = norm(x-x_target)
-    if error <= 0.001
+    improve = error_old - error;
+    
+    if error <= 1e-4 || improve < 1e-4
         break
     end
+    error_old = error;
     
     % Calculate HH
     H = B_store{1};
@@ -80,6 +150,7 @@ while true
     end
     
     % Some plots
+    figure(1)
     delete(plot_traj)
     plot_traj = plot(x_traj(1,:),x_traj(2,:),'k','LineWidth',2.5);
     start = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
@@ -114,7 +185,7 @@ while true
     
     
     if isempty(A)
-        du = - (H'*H+10*eye(2*iter_max))\(H'*(x-x_target));
+        du = - (H'*H+1*error^2*eye(2*iter_max))\(H'*(x-x_target));
     else
         options = optimset('display','off');
         du = quadprog(H'*H + 0.1*error^2*eye(2*iter_max) , (x-x_target)'*H , -A, -B, [],[],[],[],[],options);
@@ -122,11 +193,11 @@ while true
     u = u + du;
 % toc    
 end 
-toc
-u_forward = u;
-traj_forward = x_traj;
+% toc
+u_steer = u;
+traj_steer = x_traj;
 
-
+end
 
 function [parameter] = linear_regression(data) 
 % data & linear_data: pxn matrix

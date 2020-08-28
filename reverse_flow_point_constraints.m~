@@ -33,13 +33,73 @@ scatter(xv,yv,12,'r','filled')
 scatter(linear_data(:,1),linear_data(:,2),12,'r','filled');
 
 %%
+x0 = [0;0;0];
+x_target = [4;0;0];
+u = 0.01*ones(2*200,1);
+
+
+[traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_target,u,boundary_pts);
+
+if norm(traj_steer(:,end)-x_target)<1e-3
+    display('done!')
+end
+
+
+
+X_data = traj_steer(:,end);
+U_data = u_steer;
+
+while true     
+for rep = 1:10
+    
+% 1/ Random goal
+x_goal = rand(3,1);
+
+% 2/ Obtain U_best from X_data, U_data
+[~, ~, closest_index] = distance_to_a_set(x_goal,X_data);
+U_best = U_data(:,closest_index);
+
+% 3/ Steer 
+[traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_goal,U_best,boundary_pts);
+
+if norm(traj_steer(:,end)-x_target)<1e-3
+    display('done!')
+    break
+end
+
+% 4/ Store Xn, u_steer
+X_data(:,end+1) = traj_steer(:,end);
+U_data(:,end+1) = u_steer;
+end
+
+% Introducing bias by having a random goal as x_target
+% 2/ Obtain U_best from X_data, U_data
+[~, ~, closest_index] = distance_to_a_set(x_target,X_data);
+U_best = U_data(:,closest_index);
+% 3/ Steer
+[traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_target,U_best,boundary_pts);
+if norm(traj_steer(:,end)-x_target)<1e-3
+    display('done!')
+    break
+end
+
+end
+
+
+
+
+
+
+% 
+function [traj_steer,u_steer] = steer(Phi,Psi_p,JPhi,p,x0,x_target,u,boundary_pts)
+error_old = 1e6;
 dt = 0.02;
 T = 4;
 iter_max = ceil(T/dt);
-x0 = [0;0;0];
-x_target = [4;0;0];
-rng('shuffle');
-u = 0.01*ones(2*iter_max,1); 
+% x0 = [0;0;0];
+% x_target = [4;0;0];
+% rng('shuffle');
+% u = 0.01*ones(2*iter_max,1); 
 n_of_pts = 10;
 
 figure
@@ -47,7 +107,7 @@ hold on
 plot_traj = plot(x0(1),x0(2),'ko','MarkerSize',8,'LineWidth',2.5);
 scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
 grid on
-tic
+% tic
 while true
 % tic    
     x = x0;
@@ -63,13 +123,16 @@ while true
         [~, x_trajJ_fine] = adaptive_taylor(p,Phi,Psi_p,[0 dt],[x;u(2*iter-1);u(2*iter)]); % x[k]-->x[k+1] might internally be broken into smaller steps to have better accuracy
         x = x_trajJ_fine(end,:)'; % the end of this sequence is x[k+1]
         x = x(1:3);
-        x_traj() = [x_traj x];      
+        x_traj = [x_traj x];      
     end
     
     error = norm(x-x_target)
-    if error <= 0.001
+    improve = error_old - error;
+    
+    if error <= 1e-4 || improve < 1e-4
         break
     end
+    error_old = error;
     
     % Calculate HH
     H = B_store{1};
@@ -122,11 +185,11 @@ while true
     u = u + du;
 % toc    
 end 
-toc
-u_forward = u;
-traj_forward = x_traj;
+% toc
+u_steer = u;
+traj_steer = x_traj;
 
-
+end
 
 function [parameter] = linear_regression(data) 
 % data & linear_data: pxn matrix
