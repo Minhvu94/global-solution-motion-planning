@@ -62,7 +62,7 @@ axis([-3 8 -5 5]);
 % [traj_steer,u_steer,reach] = steer(Phi_rev,Psi_p_rev,JPhi_rev,p,[3;-3;0],x_target,zeros(2*200,1),boundary_pts);
 
 
-%% Bidirectional sampling + iterative steering 
+%% Bidirectional sampling + iterative steering (whole trajectory)
 tic;
 
 x0 = [0;0;0];
