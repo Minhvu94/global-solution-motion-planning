@@ -26,7 +26,7 @@ toc
 % scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
 % [distance, closest_element, index] = distance_to_a_set([1;1],boundary_pts);
 
-% Another boundary points: 
+%% Another boundary points: 
 r = 1.5;
 left_angle=-pi/2:0.005:pi/2; 
 left_xp=r*cos(left_angle);
@@ -45,7 +45,7 @@ pts1 = pts_between([0;-1.5],[0;-2],30);
 pts2 = pts_between([0;1.5],[0;2],30);
 boundary_pts = [boundary_pts,pts1(2:end-1,:)',pts2(2:end-1,:)'];
 
-% scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
+scatter(boundary_pts(1,:), boundary_pts(2,:),10,'b','filled');
 
 %% Draft zone
 figure(1)
@@ -154,9 +154,9 @@ dt = 0.02;
 T = 8;
 iter_max = ceil(T/dt);
 
-u = part1_control;
+% u = part1_control;
 n_of_pts = 10;
-mu = 50;
+mu = 10;
 
 % tic
 for repeat=1:500   
